@@ -9,13 +9,13 @@ var debug = require('debug')('webtorrent')
 var DHT = require('bittorrent-dht/client') // browser exclude
 var EventEmitter = require('events').EventEmitter
 var extend = require('xtend')
-var hat = require('hat')
 var inherits = require('inherits')
 var loadIPSet = require('load-ip-set') // browser exclude
 var parallel = require('run-parallel')
 var parseTorrent = require('parse-torrent')
 var path = require('path')
 var Peer = require('simple-peer')
+var randombytes = require('randombytes')
 var speedometer = require('speedometer')
 var zeroFill = require('zero-fill')
 
@@ -65,7 +65,7 @@ function WebTorrent (opts) {
   } else if (Buffer.isBuffer(opts.peerId)) {
     self.peerId = opts.peerId.toString('hex')
   } else {
-    self.peerId = Buffer.from(VERSION_PREFIX + hat(48)).toString('hex')
+    self.peerId = Buffer.from(VERSION_PREFIX + randombytes(9).toString('base64')).toString('hex')
   }
   self.peerIdBuffer = Buffer.from(self.peerId, 'hex')
 
@@ -74,7 +74,7 @@ function WebTorrent (opts) {
   } else if (Buffer.isBuffer(opts.nodeId)) {
     self.nodeId = opts.nodeId.toString('hex')
   } else {
-    self.nodeId = hat(160)
+    self.nodeId = randombytes(20).toString('hex')
   }
   self.nodeIdBuffer = Buffer.from(self.nodeId, 'hex')
 
@@ -86,6 +86,11 @@ function WebTorrent (opts) {
   self.torrents = []
   self.maxConns = Number(opts.maxConns) || 55
 
+  debug(
+    'new webtorrent (peerId %s, nodeId %s, port %s)',
+    self.peerId, self.nodeId, self.torrentPort
+  )
+
   if (self.tracker) {
     if (typeof self.tracker !== 'object') self.tracker = {}
     if (opts.rtcConfig) {
@@ -96,9 +101,11 @@ function WebTorrent (opts) {
     if (opts.wrtc) {
       // TODO: remove in v1
       console.warn('WebTorrent: opts.wrtc is deprecated. Use opts.tracker.wrtc instead')
-      self.tracker.wrtc = opts.wrtc // to support `webtorrent-hybrid` package
+      self.tracker.wrtc = opts.wrtc
     }
-    if (global.WRTC && !self.tracker.wrtc) self.tracker.wrtc = global.WRTC
+    if (global.WRTC && !self.tracker.wrtc) {
+      self.tracker.wrtc = global.WRTC
+    }
   }
 
   if (typeof TCPPool === 'function') {
@@ -134,7 +141,8 @@ function WebTorrent (opts) {
     self.dht = false
   }
 
-  debug('new webtorrent (peerId %s, nodeId %s)', self.peerId, self.nodeId)
+  // Enable or disable BEP19 (Web Seeds). Enabled by default:
+  self.enableWebSeeds = opts.webSeeds !== false
 
   if (typeof loadIPSet === 'function' && opts.blocklist != null) {
     loadIPSet(opts.blocklist, {
@@ -297,7 +305,6 @@ WebTorrent.prototype.seed = function (input, opts, onseed) {
   // When seeding from fs path, initialize store from that path to avoid a copy
   if (typeof input === 'string') opts.path = path.dirname(input)
   if (!opts.createdBy) opts.createdBy = 'WebTorrent/' + VERSION_STR
-  if (!self.tracker) opts.announce = []
 
   var torrent = self.add(null, opts, onTorrent)
   var streams

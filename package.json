@@ -1,7 +1,7 @@
 {
   "name": "webtorrent",
   "description": "Streaming torrent client",
-  "version": "0.95.6",
+  "version": "0.98.0",
   "author": {
     "name": "WebTorrent, LLC",
     "email": "feross@webtorrent.io",
@@ -35,7 +35,6 @@
     "debug": "^2.2.0",
     "end-of-stream": "^1.1.0",
     "fs-chunk-store": "^1.6.2",
-    "hat": "^0.0.3",
     "immediate-chunk-store": "^1.0.8",
     "inherits": "^2.0.1",
     "load-ip-set": "^1.2.7",
@@ -46,9 +45,10 @@
     "parse-torrent": "^5.8.0",
     "pump": "^1.0.1",
     "random-iterate": "^1.0.1",
+    "randombytes": "^2.0.3",
     "range-parser": "^1.2.0",
     "readable-stream": "^2.1.4",
-    "render-media": "^2.6.0",
+    "render-media": "^2.8.0",
     "run-parallel": "^1.1.6",
     "run-parallel-limit": "^1.0.3",
     "safe-buffer": "^5.0.1",
@@ -74,16 +74,19 @@
     "brfs": "^1.4.3",
     "browserify": "^13.0.1",
     "cross-spawn": "^4.0.0",
-    "electron-prebuilt": "^0.37.2",
+    "electron-prebuilt": "^0.37.8",
     "finalhandler": "^0.5.0",
     "network-address": "^1.1.0",
     "run-series": "^1.1.4",
     "serve-static": "^1.11.1",
-    "standard": "^7.1.2",
+    "standard": "*",
     "tape": "^4.6.0",
     "uglify-js": "^2.7.0",
     "webtorrent-fixtures": "^1.5.0",
     "zuul": "^3.10.1"
+  },
+  "engines": {
+    "node": ">=4"
   },
   "homepage": "https://webtorrent.io",
   "keywords": [

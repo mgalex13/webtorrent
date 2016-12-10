@@ -18,7 +18,7 @@ npm install webtorrent
 ```js
 var client = new WebTorrent()
 
-var torrentId = 'magnet:?xt=urn:btih:6a9759bffd5c0af65319979fb7832189f4f3c35d&dn=sintel.mp4&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&tr=wss%3A%2F%2Ftracker.webtorrent.io&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fsintel-1024-surround.mp4'
+var torrentId = 'magnet:?xt=urn:btih:6a9759bffd5c0af65319979fb7832189f4f3c35d&dn=sintel.mp4&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fsintel-1024-surround.mp4'
 
 client.add(torrentId, function (torrent) {
   // Torrents can contain many files. Let's use the first.
@@ -51,11 +51,12 @@ If `opts` is specified, then the default options (shown below) will be overridde
 
 ```js
 {
-  dht: Boolean|Object,     // Enable DHT (default=true), or options object for DHT
   maxConns: Number,        // Max number of connections per torrent (default=55)
   nodeId: String|Buffer,   // DHT protocol node ID (default=randomly generated)
   peerId: String|Buffer,   // Wire protocol peer ID (default=randomly generated)
-  tracker: Boolean|Object  // Enable trackers (default=true), or options object for Tracker
+  tracker: Boolean|Object, // Enable trackers (default=true), or options object for Tracker
+  dht: Boolean|Object,     // Enable DHT (default=true), or options object for DHT
+  webSeeds: Boolean        // Enable BEP19 web seeds (default=true)
 }
 ```
 
@@ -459,6 +460,10 @@ File path, as specified by the torrent. *Example: 'some-folder/some-filename.txt
 
 File length (in bytes), as specified by the torrent. *Example: 12345*
 
+## `file.downloaded`
+
+Total *verified* bytes received from peers, for this file.
+
 ## `file.select()`
 
 Selects the file to be downloaded, but at a lower priority than files with streams.
@@ -501,7 +506,7 @@ file.getBuffer(function (err, buffer) {
 })
 ```
 
-## `file.appendTo(rootElem, [function callback (err, elem) {}])` *(browser only)*
+## `file.appendTo(rootElem, [opts], [function callback (err, elem) {}])` *(browser only)*
 
 Show the file in a the browser by appending it to the DOM. This is a powerful function
 that handles many file types like video (.mp4, .webm, .m4v, etc.), audio (.m4a, .mp3,
@@ -518,8 +523,15 @@ the file will be downloaded then displayed.
 will be shown in. A new DOM node will be created for the content and appended to
 `rootElem`.
 
-`callback` will be called once the file is visible to the user. `callback` is called
-with an `Error` (or `null`) and the new DOM node that is displaying the content.
+If provided, `opts` can contain the following options:
+
+- `autoplay`: Autoplay video/audio files (default: `true`)
+- `controls`: Show video/audio player controls (default: `true`)
+- `maxBlobLength`: Files above this size will skip the "blob" strategy and fail (default: `200 * 1000 * 1000` bytes)
+
+If provided, `callback` will be called once the file is visible to the user.
+`callback` is called with an `Error` (or `null`) and the new DOM node that is
+displaying the content.
 
 ```js
 file.appendTo('#containerElement', function (err, elem) {
@@ -528,7 +540,34 @@ file.appendTo('#containerElement', function (err, elem) {
 })
 ```
 
-## `file.renderTo(elem, [function callback (err, elem) {}])` *(browser only)*
+Streaming support depends on support for `MediaSource` API in the browser. All
+modern browsers have `MediaSource` support.
+
+For video and audio, webtorrent tries multiple methods of playing the file:
+
+- [`videostream`][videostream] -- best option, supports streaming **with seeking**,
+  but only works with MP4-based files for now (uses `MediaSource` API)
+- [`mediasource`][mediasource] -- supports more formats, supports streaming
+  **without seeking** (uses `MediaSource` API)
+- Blob URL -- supports the most formats of all (anything the `<video>` tag supports
+  from an http url), **with seeking**, but **does not support streaming** (entire
+  file must be downloaded first)
+
+[videostream]: https://www.npmjs.com/package/videostream
+[mediasource]: https://www.npmjs.com/package/mediasource
+
+The Blob URL strategy will not be attempted if the file is over
+`opts.maxBlobLength` (200 MB by default) since it requires the entire file to be
+downloaded before playback can start which gives the appearance of the `<video>`
+tag being stalled. If you increase the size, be sure to indicate loading progress
+to the user in the UI somehow.
+
+For other media formats, like images, the file is just added to the DOM.
+
+For text-based formats, like html files, pdfs, etc., the file is added to the DOM
+via a sandboxed `<iframe>` tag.
+
+## `file.renderTo(elem, [opts], [function callback (err, elem) {}])` *(browser only)*
 
 Like `file.appendTo` but renders directly into given element (or CSS selector).
 
