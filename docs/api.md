@@ -165,6 +165,8 @@ Always listen for the 'error' event.
 Remove a torrent from the client. Destroy all connections to peers and delete all saved
 file data. If `callback` is specified, it will be called when file data is removed.
 
+*Note: This method does not currently delete torrent data (in e.g. `/tmp/webtorrent/...`, see the `path` option to `client.add`). Until this is fixed, please implement it yourself (consider using the `rimraf` npm package).
+
 ## `client.destroy([function callback (err) {}])`
 
 Destroy the client, including all torrents and connections to peers. If `callback` is specified, it will be called when the client has gracefully closed.
@@ -473,6 +475,8 @@ Useful if you know you need the file at a later stage.
 
 Deselects the file, which means it won't be downloaded unless someone creates a stream
 for it.
+
+*Note: This method is currently not working as expected, see [dcposch answer on #164](https://github.com/feross/webtorrent/issues/164) for a nice work around solution.
 
 ## `stream = file.createReadStream([opts])`
 
